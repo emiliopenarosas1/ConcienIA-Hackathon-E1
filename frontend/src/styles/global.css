@@ -1,0 +1,328 @@
+/* ── Variables HSL — tema dark premium ───────────────────────────────────── */
+:root {
+  --hue: 158;
+  --sat: 70%;
+
+  --bg-0: hsl(var(--hue), 15%, 6%);
+  --bg-1: hsl(var(--hue), 12%, 10%);
+  --bg-2: hsl(var(--hue), 10%, 14%);
+
+  --accent:     hsl(var(--hue), var(--sat), 52%);
+  --accent-dim: hsl(var(--hue), var(--sat), 38%);
+  --accent-glow:hsl(var(--hue), var(--sat), 68%);
+
+  --text-1: hsl(0, 0%, 96%);
+  --text-2: hsl(0, 0%, 70%);
+  --text-3: hsl(0, 0%, 45%);
+
+  --border:   hsla(var(--hue), 30%, 70%, 0.12);
+  --border-hi:hsla(var(--hue), 60%, 70%, 0.30);
+
+  /* Colores por material (SEMARNAT) */
+  --c-pet:          hsl(210, 80%, 58%);
+  --c-organico:     hsl(128, 55%, 42%);
+  --c-aluminio:     hsl(44,  90%, 52%);
+  --c-vidrio:       hsl(280, 55%, 62%);
+  --c-carton:       hsl(28,  72%, 52%);
+  --c-no-reciclable:hsl(0,   45%, 50%);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+
+  --shadow-sm: 0 2px 8px hsla(0,0%,0%,0.35);
+  --shadow-md: 0 8px 24px hsla(0,0%,0%,0.4);
+  --shadow-lg: 0 20px 60px hsla(0,0%,0%,0.5);
+  --shadow-accent: 0 0 30px hsla(var(--hue), var(--sat), 52%, 0.25);
+}
+
+/* ── Reset & Base ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-0);
+  color: var(--text-1);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── App Layout ──────────────────────────────────────────────────────────── */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: hsla(var(--hue), 15%, 6%, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 64px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.brand-icon {
+  font-size: 1.6rem;
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+.header-brand h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent-glow);
+  letter-spacing: -0.02em;
+}
+
+.brand-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  display: none;
+}
+
+@media (min-width: 900px) { .brand-subtitle { display: inline; } }
+
+/* ── Navigation ──────────────────────────────────────────────────────────── */
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-2);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.nav-btn:hover {
+  background: var(--bg-2);
+  color: var(--text-1);
+  border-color: var(--border-hi);
+}
+
+.nav-btn.active {
+  background: hsla(var(--hue), var(--sat), 52%, 0.15);
+  border-color: var(--accent);
+  color: var(--accent-glow);
+}
+
+/* ── Main ────────────────────────────────────────────────────────────────── */
+.app-main {
+  padding: 2rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 600px) { .app-main { padding: 1rem; } }
+
+/* ── Section titles ──────────────────────────────────────────────────────── */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-title::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 1.4em;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: var(--shadow-accent);
+}
+
+/* ── Stat Cards ──────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-1);
+  line-height: 1;
+}
+
+.stat-unit {
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
+/* ── Progress Bars ───────────────────────────────────────────────────────── */
+.progress-bar {
+  height: 8px;
+  background: var(--bg-2);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-alto      { background: hsla(0,  70%,55%,0.15); color: hsl(0,  70%,65%); border: 1px solid hsla(0,70%,55%,0.3); }
+.badge-medio     { background: hsla(44, 80%,55%,0.15); color: hsl(44, 80%,65%); border: 1px solid hsla(44,80%,55%,0.3); }
+.badge-bajo      { background: hsla(128,55%,42%,0.15); color: hsl(128,55%,55%); border: 1px solid hsla(128,55%,42%,0.3); }
+.badge-muy-alto  { background: hsla(280,55%,60%,0.15); color: hsl(280,55%,70%); border: 1px solid hsla(280,55%,60%,0.3); }
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 16px hsla(var(--hue), var(--sat), 52%, 0.35);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-glow);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px hsla(var(--hue), var(--sat), 52%, 0.45);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--bg-2); color: var(--text-1); border-color: var(--border-hi); }
+
+.btn-danger { background: hsla(0,70%,50%,0.15); color: hsl(0,70%,65%); border: 1px solid hsla(0,70%,50%,0.3); }
+.btn-danger:hover { background: hsla(0,70%,50%,0.25); }
+
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.form-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.form-input, .form-select {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+.form-input:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px hsla(var(--hue), var(--sat), 52%, 0.15);
+}
+.form-select option { background: var(--bg-1); }
+
+/* ── Loading spinner ─────────────────────────────────────────────────────── */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid hsla(var(--hue),var(--sat),52%,0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-3);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+.empty-state p { font-size: 0.9rem; }
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+/* ── Material colors util ────────────────────────────────────────────────── */
+.mat-PET          { color: var(--c-pet); }
+.mat-Organico     { color: var(--c-organico); }
+.mat-Aluminio     { color: var(--c-aluminio); }
+.mat-Vidrio       { color: var(--c-vidrio); }
+.mat-Carton       { color: var(--c-carton); }
+.mat-NoReciclable { color: var(--c-no-reciclable); }
