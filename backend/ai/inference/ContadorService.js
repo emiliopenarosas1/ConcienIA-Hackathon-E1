@@ -1,15 +1,26 @@
 /**
- * ContadorService — motor analítico de residuos reales registrados.
- * No requiere modelo ML entrenado: calcula sobre los registros_limpieza
- * cruzando con factores_emision y precios_recicladoras de la DB.
- *
- * Capacidad camión compactador MX: ~8 toneladas (SEMOVI-CDMX).
- * Factor compactación aplicado: 60% → umbral real = 4,800 kg/camión.
+ * @file ContadorService.js
+ * @description Motor de agregación analítica para los registros de limpieza de la plataforma ConciencIA.
+ * Permite calcular el volumen total de residuos, su desglose, impacto en la huella de carbono
+ * e ingresos potenciales por reciclaje.
  */
 
 const db = require('../../db/database');
 
+/**
+ * Servicio encargado de procesar y estructurar la analítica de los residuos recolectados.
+ * @class ContadorService
+ */
 class ContadorService {
+  /**
+   * Analiza y consolida los registros de limpieza de un evento específico.
+   * 
+   * @param {Object} evento - Datos del evento objeto del análisis.
+   * @param {number} evento.id - Identificador único del evento.
+   * @param {string} evento.nombre - Nombre del evento.
+   * @param {Array<Object>} registros - Lista de registros de residuos recolectados en el evento.
+   * @returns {Object} Reporte estadístico y financiero consolidado del evento.
+   */
   analizar(evento, registros) {
     if (!registros.length) {
       return {
@@ -17,9 +28,14 @@ class ContadorService {
         nombre_evento: evento.nombre,
         desglose: [],
         resumen: {
-          total_kg: 0, reciclable_kg: 0, reciclable_pct: 0,
-          no_reciclable_kg: 0, no_reciclable_pct: 0,
-          ingreso_esperado_mxn: 0, huella_carbono_kg: 0, camiones_estimados: 0,
+          total_kg: 0,
+          reciclable_kg: 0,
+          reciclable_pct: 0,
+          no_reciclable_kg: 0,
+          no_reciclable_pct: 0,
+          ingreso_esperado_mxn: 0,
+          huella_carbono_kg: 0,
+          camiones_estimados: 0,
         },
         zonas: [],
         ingresos_desglosados: [],
@@ -32,17 +48,17 @@ class ContadorService {
     const factorMap = Object.fromEntries(factores.map(f => [f.material, f]));
     const precioMap = Object.fromEntries(precios.map(p => [p.material, p]));
 
-    // --- 1. Agregar por tipo_basura ---
     const porTipo = {};
     for (const reg of registros) {
-      if (!porTipo[reg.tipo_basura]) porTipo[reg.tipo_basura] = { kg: 0, bolsas: 0 };
+      if (!porTipo[reg.tipo_basura]) {
+        porTipo[reg.tipo_basura] = { kg: 0, bolsas: 0 };
+      }
       porTipo[reg.tipo_basura].kg     += reg.kg_estimado;
       porTipo[reg.tipo_basura].bolsas += reg.cantidad_bolsas;
     }
 
     const total_kg = Object.values(porTipo).reduce((s, v) => s + v.kg, 0);
 
-    // --- 2. Desglose por categoría ---
     const desglose = Object.entries(porTipo).map(([tipo, data]) => {
       const factor   = factorMap[tipo]  || { kg_co2_por_kg: 1.8, reciclable: 0 };
       const precio   = precioMap[tipo]  || { precio_ref_mxn: 0, precio_min_mxn: 0, precio_max_mxn: 0, recicladora_ref: 'N/A' };
@@ -62,22 +78,20 @@ class ContadorService {
       };
     }).sort((a, b) => b.kg - a.kg);
 
-    // --- 3. Resumen ---
     const reciclables     = desglose.filter(d => d.reciclable);
     const no_reciclables  = desglose.filter(d => !d.reciclable);
 
     const reciclable_kg        = reciclables.reduce((s, d) => s + d.kg, 0);
     const no_reciclable_kg     = no_reciclables.reduce((s, d) => s + d.kg, 0);
     const ingreso_esperado_mxn = reciclables.reduce((s, d) => s + d.ingreso_mxn, 0);
-    // Huella CO2 = solo residuos no reciclables (los reciclables no van a relleno sanitario)
     const huella_carbono_kg    = no_reciclables.reduce((s, d) => s + d.kg * d.kg_co2_por_kg, 0);
-    // Camión compactador MX ≈ 8t, factor compactación 60%
     const camiones_estimados   = Math.ceil(total_kg / 4800);
 
-    // --- 4. Ranking de zonas ---
     const porZona = {};
     for (const reg of registros) {
-      if (!porZona[reg.zona]) porZona[reg.zona] = { kg: 0, bolsas: 0, porTipo: {} };
+      if (!porZona[reg.zona]) {
+        porZona[reg.zona] = { kg: 0, bolsas: 0, porTipo: {} };
+      }
       porZona[reg.zona].kg     += reg.kg_estimado;
       porZona[reg.zona].bolsas += reg.cantidad_bolsas;
       porZona[reg.zona].porTipo[reg.tipo_basura] =
@@ -93,7 +107,6 @@ class ContadorService {
       desglose_tipos:    data.porTipo,
     })).sort((a, b) => b.kg - a.kg);
 
-    // --- 5. Ingresos desglosados por recicladora ---
     const porRecicladora = {};
     for (const d of reciclables) {
       if (!porRecicladora[d.recicladora]) {

@@ -1,8 +1,18 @@
+/**
+ * @file privacidad.js
+ * @description Enrutador Express para la gestión de privacidad y derechos ARCO.
+ * Permite acceder a los detalles del aviso de privacidad y efectuar la cancelación (eliminación) de datos.
+ */
+
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 
-// GET /api/aviso-privacidad
+/**
+ * @route GET /api/aviso-privacidad
+ * @group Privacidad - Información y Cumplimiento
+ * @returns {Object} 200 - Objeto informativo detallando la base legal y datos recopilados bajo la LFPDPPP.
+ */
 router.get('/aviso-privacidad', (req, res) => {
   res.json({
     responsable: 'Data Circular — Hackathon Medioambiente 2024',
@@ -29,7 +39,12 @@ router.get('/aviso-privacidad', (req, res) => {
   });
 });
 
-// DELETE /api/eliminar-datos  (Derecho de Cancelación ARCO)
+/**
+ * @route DELETE /api/eliminar-datos
+ * @group Privacidad - Ejercicio de Derechos ARCO (Cancelación)
+ * @returns {Object} 200 - Confirmación de eliminación completa de los registros.
+ * @returns {Error}  500 - Error interno al procesar la cancelación.
+ */
 router.delete('/eliminar-datos', (req, res) => {
   try {
     const { changes } = db.prepare('DELETE FROM eventos').run();
@@ -44,7 +59,11 @@ router.delete('/eliminar-datos', (req, res) => {
   }
 });
 
-// GET /api/mis-datos (Derecho de Acceso ARCO — resumen anónimo)
+/**
+ * @route GET /api/mis-datos
+ * @group Privacidad - Ejercicio de Derechos ARCO (Acceso)
+ * @returns {Object} 200 - Resumen anónimo de las estadísticas de almacenamiento.
+ */
 router.get('/mis-datos', (req, res) => {
   const resumen = db.prepare(
     'SELECT COUNT(*) as eventos_guardados, SUM(toneladas_totales) as toneladas_total FROM eventos'

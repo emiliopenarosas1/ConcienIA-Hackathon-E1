@@ -1,10 +1,8 @@
 /**
- * IdentificarService — identifica el tipo de residuo a partir de una imagen.
- * Jerarquía de carga:
- *   1. MLP entrenado (mlp_model.json) — modelo custom sin dependencias nativas
- *   2. Fallback histograma de color — heurística simple si el modelo no existe
- *
- * Imágenes procesadas en RAM únicamente (LFPDPPP — no persisten en disco).
+ * @file IdentificarService.js
+ * @description Servicio de clasificación inteligente de residuos utilizando heurísticas avanzadas
+ * de color/textura en HSV/RGB o un modelo Perceptrón Multicapa (MLP).
+ * Las imágenes procesadas se decodifican temporalmente en RAM y no persisten en disco (conforme LFPDPPP).
  */
 
 const Jimp = require('jimp');
@@ -14,8 +12,16 @@ const path = require('path');
 const MODEL_PATH = path.join(__dirname, '../models/clasificador/mlp_model.json');
 const IMG_SIZE   = 64;
 
+/**
+ * Categorías válidas de residuos.
+ * @type {Array<string>}
+ */
 const CATEGORIAS = ['PET', 'Organico', 'Aluminio', 'Vidrio', 'Carton', 'NoReciclable'];
 
+/**
+ * Mapeo de contenedores recomendados por material con su normativa respectiva en México.
+ * @type {Object<string, {color: string, hex: string, norma: string}>}
+ */
 const CONTENEDOR = {
   PET:          { color: 'azul',     hex: '#2563EB', norma: 'NOM-161-SEMARNAT-2011' },
   Organico:     { color: 'verde',    hex: '#16A34A', norma: 'Compostaje / NOM-083' },
@@ -25,10 +31,36 @@ const CONTENEDOR = {
   NoReciclable: { color: 'negro',    hex: '#1F2937', norma: 'Disposición final NOM-083' },
 };
 
+/**
+ * Realiza el producto punto entre una matriz W y un vector x.
+ * 
+ * @private
+ * @param {Array<Array<number>>} W - Matriz de pesos.
+ * @param {Array<number>} x - Vector de características.
+ * @returns {Array<number>} Vector resultante de la multiplicación.
+ */
 function matVec(W, x) {
   return W.map(row => row.reduce((s, w, j) => s + w * x[j], 0));
 }
-function relu(z)    { return z.map(v => v > 0 ? v : 0); }
+
+/**
+ * Función de activación ReLU aplicada a un vector de valores.
+ * 
+ * @private
+ * @param {Array<number>} z - Vector de entrada.
+ * @returns {Array<number>} Vector resultante con valores no negativos.
+ */
+function relu(z) {
+  return z.map(v => v > 0 ? v : 0);
+}
+
+/**
+ * Función de activación Softmax para obtener distribuciones de probabilidad.
+ * 
+ * @private
+ * @param {Array<number>} z - Vector de entrada.
+ * @returns {Array<number>} Vector de probabilidades normalizadas.
+ */
 function softmax(z) {
   const mx  = Math.max(...z);
   const exp = z.map(v => Math.exp(v - mx));
@@ -36,6 +68,14 @@ function softmax(z) {
   return exp.map(v => v / s);
 }
 
+/**
+ * Ejecuta la predicción sobre el modelo MLP (Perceptrón Multicapa).
+ * 
+ * @private
+ * @param {Object} weights - Pesos de la red neuronal.
+ * @param {Array<number>} x - Vector de características de la imagen.
+ * @returns {Array<number>} Distribución de probabilidad resultante de la clasificación.
+ */
 function mlpPredict(weights, x) {
   const z1 = matVec(weights.W1, x).map((v, i) => v + weights.b1[i]);
   const a1 = relu(z1);
@@ -45,6 +85,13 @@ function mlpPredict(weights, x) {
   return softmax(z3);
 }
 
+/**
+ * Extrae las características cuantitativas de color e histograma de los píxeles de una imagen.
+ * 
+ * @private
+ * @param {Array<{r: number, g: number, b: number}>} pixels - Píxeles RGB de la imagen.
+ * @returns {Array<number>} Vector de características para clasificación.
+ */
 function extractFeatures(pixels) {
   const n = pixels.length;
   let rS = 0, gS = 0, bS = 0, satS = 0, valS = 0;
@@ -87,9 +134,15 @@ function extractFeatures(pixels) {
   ];
 }
 
+/**
+ * Calcula la desviación estándar de los niveles de brillo para estimar textura de la superficie.
+ * 
+ * @private
+ * @param {Array<{r: number, g: number, b: number}>} pixels - Píxeles de la imagen.
+ * @param {number} val - Brillo promedio (escala 0 a 1).
+ * @returns {number} Desviación estándar como aproximación de textura.
+ */
 function computeVariance(pixels, val) {
-  // Desviación estándar del brillo — alta = textura (papel, cartón, orgánico)
-  // baja = superficie lisa (vidrio, aluminio, PET liso)
   let varSum = 0;
   for (const { r, g, b } of pixels) {
     const brightness = (r + g + b) / 3 / 255;
@@ -98,45 +151,43 @@ function computeVariance(pixels, val) {
   return Math.sqrt(varSum / pixels.length);
 }
 
+/**
+ * Algoritmo clasificador secundario (fallback) basado en reglas heurísticas de color y brillo.
+ * 
+ * @private
+ * @param {Array<{r: number, g: number, b: number}>} pixels - Píxeles de la imagen.
+ * @returns {Object} Resultado estructurado con categoría, confianza y modo.
+ */
 function heuristicClassify(pixels) {
   const feats = extractFeatures(pixels);
   const [rMean, gMean, bMean, sat, val] = feats;
   const variance = computeVariance(pixels, val);
 
-  // neutral: canales RGB cercanos entre sí (gris, blanco, negro)
   const neutral = Math.abs(rMean - gMean) < 0.09 && Math.abs(gMean - bMean) < 0.09;
-  // warm: rojo/marrón domina (cartón, orgánico cálido)
   const warm = rMean > bMean + 0.04 && rMean >= gMean - 0.03;
 
   const scores = { PET: 0, Organico: 0, Aluminio: 0, Vidrio: 0, Carton: 0, NoReciclable: 0 };
 
-  // PET: azul claro dominante (botella, envase plástico azul)
   scores.PET += bMean > rMean * 1.12 && bMean > gMean * 1.05 ? 3.5
               : bMean > rMean && bMean > gMean ? 1.2 : 0.3;
 
-  // Orgánico: verde domina, brillo bajo-medio, suele tener varianza media-alta
   scores.Organico += gMean > rMean * 1.08 && gMean > bMean * 1.08 && val < 0.80 ? 3.5
                    : gMean > rMean * 1.04 && gMean > bMean * 1.04 ? 1.5
                    : (gMean > rMean && val < 0.55) ? 0.8 : 0.2;
 
-  // Aluminio: gris neutro liso — sat baja, brillo medio, SIN textura (variance baja)
   scores.Aluminio += sat < 0.10 && val > 0.50 && val < 0.88 && neutral && variance < 0.16 ? 3.5
                    : sat < 0.14 && neutral && variance < 0.12 ? 2
                    : sat < 0.18 && neutral ? 0.8 : 0.2;
 
-  // Vidrio: muy brillante Y liso (variance baja), o vidrio ámbar (r >> b)
   scores.Vidrio += val > 0.85 && variance < 0.14 ? 3.5
-                 : rMean > 0.62 && gMean > 0.28 && bMean < 0.22 ? 2.5  // ámbar
+                 : rMean > 0.62 && gMean > 0.28 && bMean < 0.22 ? 2.5
                  : val > 0.80 && variance < 0.10 ? 2 : 0.1;
 
-  // Cartón/papel: tonos cálidos-marrones clásicos, O blanco/crema CON textura (text, rayas, bordes)
-  // La varianza alta distingue papel de vidrio/aluminio aunque ambos sean claros
   scores.Carton += rMean > 0.50 && gMean > 0.38 && gMean < rMean && bMean < gMean && val < 0.92 ? 3.5
-                 : val > 0.55 && variance > 0.09 && sat < 0.30 ? 3.0   // blanco/crema con textura
+                 : val > 0.55 && variance > 0.09 && sat < 0.30 ? 3.0
                  : warm && val > 0.40 && val < 0.88 ? 1.5
                  : variance > 0.10 && val > 0.5 ? 1.0 : 0.3;
 
-  // NoReciclable: oscuro o saturado-mezclado, brillo bajo
   scores.NoReciclable += val < 0.32 ? 3.5
                        : val < 0.48 && !neutral ? 1.5
                        : val < 0.55 && sat > 0.25 ? 1.0 : 0.2;
@@ -148,6 +199,10 @@ function heuristicClassify(pixels) {
   return { categoria: cat, confianza: dist[cat], distribucion: dist, modo: 'heuristico' };
 }
 
+/**
+ * Servicio encargado de la clasificación visual de residuos.
+ * @class IdentificarService
+ */
 class IdentificarService {
   constructor() {
     this.weights    = null;
@@ -155,6 +210,11 @@ class IdentificarService {
     this._loadModel();
   }
 
+  /**
+   * Carga los pesos del clasificador neuronal si se encuentra entrenado en disco.
+   * 
+   * @private
+   */
   _loadModel() {
     if (!fs.existsSync(MODEL_PATH)) {
       console.log('[IdentificarService] Modelo MLP no encontrado — usando heurístico mejorado.');
@@ -164,7 +224,6 @@ class IdentificarService {
       const data = JSON.parse(fs.readFileSync(MODEL_PATH, 'utf8'));
       if (data.dataSource === 'synthetic') {
         console.log('[IdentificarService] Modelo sintético detectado — ignorado. Usar heurístico para fotos reales es más preciso.');
-        console.log('[IdentificarService] Entrena con imágenes reales Kaggle para activar MLP: node ai/training/train_clasificador.js');
         return;
       }
       this.weights    = data;
@@ -175,6 +234,13 @@ class IdentificarService {
     }
   }
 
+  /**
+   * Procesa la imagen codificada en Base64 para extraer su mapa de píxeles.
+   * 
+   * @private
+   * @param {string} base64 - Imagen codificada en formato Base64.
+   * @returns {Promise<Array<{r: number, g: number, b: number}>>} Promesa que resuelve a un vector de píxeles.
+   */
   async _getPixels(base64) {
     const b64 = base64.replace(/^data:image\/\w+;base64,/, '');
     const buf = Buffer.from(b64, 'base64');
@@ -187,6 +253,12 @@ class IdentificarService {
     return pixels;
   }
 
+  /**
+   * Clasifica una imagen de residuo mediante el clasificador MLP o su heurístico de respaldo.
+   * 
+   * @param {string} base64 - Imagen en formato Base64.
+   * @returns {Promise<Object>} Promesa que resuelve al diagnóstico del residuo identificado.
+   */
   async classify(base64) {
     const pixels   = await this._getPixels(base64);
     const features = extractFeatures(pixels);

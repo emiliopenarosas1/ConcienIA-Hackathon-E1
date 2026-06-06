@@ -1,32 +1,46 @@
 /**
- * AIHub — fachada unificada para los 3 servicios de IA.
- *
- * Estimar   → RF Regression     — predice residuos y huella a partir de datos del evento
- * Contar    → Motor analítico   — procesa registros reales y devuelve métricas completas
- * Identificar → MLP + heurístico — identifica tipo de residuo en una imagen
+ * @file AIHub.js
+ * @description Fachada unificada para la interacción con los servicios de Inteligencia Artificial
+ * y motores analíticos de la plataforma ConciencIA.
  */
 
-const estimador   = require('./EstimadorService');
-const contador    = require('./ContadorService');
+const estimador = require('./EstimadorService');
+const contador = require('./ContadorService');
 const identificar = require('./IdentificarService');
 
+/**
+ * Módulo unificado de servicios de IA y análisis.
+ * @module AIHub
+ */
 module.exports = {
   /**
-   * @param {{ asistentes: number, duracion_horas: number, tipo: string }} params
-   * @returns {{ residuos, total_kg, toneladas_totales }}
+   * Realiza la estimación predictiva de generación de residuos para un evento masivo.
+   * 
+   * @param {Object} params - Parámetros del evento para estimar.
+   * @param {number} params.asistentes - Cantidad estimada de asistentes al evento.
+   * @param {number} params.duracion_horas - Duración total del evento en horas.
+   * @param {string} params.tipo - Tipo de evento (por ejemplo, 'concierto', 'festival', 'deportivo').
+   * @returns {Object} Estimación de residuos, kg totales y toneladas totales estimadas.
    */
   estimar: (params) => estimador.predict(params),
 
   /**
-   * @param {{ id, nombre, tipo }} evento
-   * @param {Array}               registros  — filas de registros_limpieza
-   * @returns {object}            análisis completo con desglose, resumen, zonas e ingresos
+   * Procesa el historial de registros de limpieza en tiempo real para generar reportes analíticos.
+   * 
+   * @param {Object} evento - Datos informativos del evento.
+   * @param {number} evento.id - ID único del evento.
+   * @param {string} evento.nombre - Nombre descriptivo del evento.
+   * @param {string} evento.tipo - Categoría del evento.
+   * @param {Array<Object>} registros - Lista de registros de limpieza recopilados en el evento.
+   * @returns {Object} Reporte analítico con desgloses, zonas, impactos y estimaciones financieras.
    */
   contar: (evento, registros) => contador.analizar(evento, registros),
 
   /**
-   * @param {string} base64  — data:image/jpeg;base64,...
-   * @returns {Promise<object>}
+   * Clasifica una imagen de residuo para determinar su tipo de material y contenedor correspondiente.
+   * 
+   * @param {string} base64 - Imagen codificada en formato Base64.
+   * @returns {Promise<Object>} Promesa que resuelve a un objeto con la categoría, nivel de confianza y contenedor.
    */
   identificar: (base64) => identificar.classify(base64),
 };
