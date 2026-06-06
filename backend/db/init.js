@@ -4,7 +4,13 @@ const path      = require('path');
 const bcrypt    = require('bcryptjs');
 const db        = require('./database');
 
-const DB_PATH = path.join(__dirname, 'datacircular.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'datacircular.db');
+
+// Asegurar que exista la carpeta contenedora (necesario si se monta un volumen externo en Railway)
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
 // Factores de emisión CO2 (kg CO2eq / kg residuo)
 // Fuentes: SEMARNAT 2018, EPA WARM Tool 2023, International Aluminium Institute
