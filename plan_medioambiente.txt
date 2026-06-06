@@ -1,0 +1,204 @@
+=============================================================================
+PLAN DE IMPLEMENTACIÓN: DATA CIRCULAR (RETO 2 - MEDIOAMBIENTE)
+Optimización de Flujos de Residuos en Eventos Masivos
+Stack: Node.js + Express · Vite + React 18 · IA Propia Entrenada Localmente
+=============================================================================
+
+Este documento detalla el plan de desarrollo de 4 fases para el Reto 2
+(Medioambiente). Diseñado para implementarse en un hackathon usando
+herramientas ya disponibles en el entorno Windows (Node.js 20 + npm).
+
+-----------------------------------------------------------------------------
+1. STACK TECNOLÓGICO DEFINITIVO
+-----------------------------------------------------------------------------
+- Backend:      Node.js 20 + Express 4
+- Frontend:     Vite 5 + React 18
+- Base de Datos: SQLite (better-sqlite3) — local, sin servidor externo
+- IA Estimador: ml-random-forest (ML.js) — Random Forest entrenado localmente
+- IA Clasificador: @tensorflow/tfjs-node + MobileNetV2 (Transfer Learning)
+                   Dataset: Kaggle Waste Classification (~2500 imágenes)
+- IA Recomendador: ml-random-forest Multi-label + Template Engine en Node.js
+- Imágenes:     jimp (resize/normalización, sin dependencias nativas)
+- Gráficas:     chart.js + react-chartjs-2 (dona interactiva)
+- Estilos:      CSS Variables + Glassmorphism (sin framework externo)
+- Tipografía:   Google Fonts (Inter)
+
+-----------------------------------------------------------------------------
+2. ESTRUCTURA ORGANIZATIVA DEL PROYECTO
+-----------------------------------------------------------------------------
+
+/backend
+  ├── ai/
+  │   ├── training/
+  │   │   ├── train_estimador.js      # Genera 800 registros + entrena RF
+  │   │   ├── train_clasificador.js   # Fine-tune MobileNetV2 con Kaggle data
+  │   │   └── train_recomendador.js   # Genera 400 escenarios + entrena clf
+  │   ├── models/
+  │   │   ├── estimador.json          # Modelo serializado (~50KB)
+  │   │   ├── clasificador/           # Modelo TF.js exportado (~5MB)
+  │   │   │   ├── model.json
+  │   │   │   └── weights.bin
+  │   │   └── recomendador.json       # Modelo serializado (~30KB)
+  │   └── inference/
+  │       ├── EstimadorService.js     # Predicción de residuos por categoría
+  │       ├── ClasificadorService.js  # Clasificación de imagen → categoría
+  │       └── RecomendadorService.js  # Generación de recomendaciones priorizadas
+  ├── api/
+  │   ├── eventos.js          # POST /estimar, GET /eventos, GET /eventos/:id
+  │   ├── clasificacion.js    # POST /clasificar (imagen base64)
+  │   ├── recomendaciones.js  # GET /recomendaciones/:id
+  │   └── privacidad.js       # DELETE /eliminar-datos, GET /aviso
+  ├── db/
+  │   ├── database.js         # Conexión SQLite
+  │   ├── init.js             # Crea tablas + inserta factores de emisión CO2
+  │   └── schema.sql          # DDL completo
+  ├── data/waste_images/      # Dataset Kaggle descargado (guiado automático)
+  ├── package.json
+  └── server.js               # Punto de entrada Express
+
+/frontend
+  ├── src/
+  │   ├── components/
+  │   │   ├── Dashboard.jsx           # Métricas + gráfica dona + resumen
+  │   │   ├── EventoForm.jsx          # Formulario de estimación
+  │   │   ├── DonutChart.jsx          # Gráfica distribución residuos
+  │   │   ├── Clasificador.jsx        # Drag&drop + webcam + animación IA
+  │   │   ├── Recomendaciones.jsx     # Cards priorizadas con impacto
+  │   │   ├── PrivacyModal.jsx        # Consentimiento LFPDPPP
+  │   │   ├── ARCOPanel.jsx           # Derechos ARCO + eliminar datos
+  │   │   └── GlassCard.jsx           # Widget reutilizable glassmorphism
+  │   ├── services/
+  │   │   └── api.js                  # Cliente HTTP hacia Express
+  │   ├── styles/
+  │   │   ├── global.css              # Variables HSL, tema dark, tipografía
+  │   │   ├── glassmorphism.css       # Blur, transparencia, bordes
+  │   │   └── animations.css          # Micro-animaciones, scanner, transiciones
+  │   ├── App.jsx
+  │   └── main.jsx
+  ├── index.html
+  ├── vite.config.js
+  └── package.json
+
+-----------------------------------------------------------------------------
+3. BASE DE DATOS SQLite
+-----------------------------------------------------------------------------
+Tabla factores_emision:
+  - id, material, kg_co2_por_kg, reciclable, color_contenedor, descripcion
+
+Datos pre-cargados (benchmarks SEMARNAT + Ecoembes):
+  - PET:      6.0 kg CO2/kg  | Contenedor azul   | Reciclable
+  - Orgánico: 0.5 kg CO2/kg  | Contenedor verde  | Compostable
+  - Aluminio: 8.2 kg CO2/kg  | Contenedor amarillo | Reciclable
+  - Vidrio:   0.85 kg CO2/kg | Contenedor blanco | Reciclable
+  - Cartón:   1.1 kg CO2/kg  | Contenedor gris   | Reciclable
+
+Tabla eventos:
+  - id, nombre, tipo, asistentes, duracion_horas, fecha_creacion,
+    residuos_json, huella_carbono_kg, toneladas_totales
+
+-----------------------------------------------------------------------------
+4. MODELOS DE IA PROPIOS — DETALLE
+-----------------------------------------------------------------------------
+
+MODELO 1: EstimadorResiduos (Random Forest — ml-random-forest)
+  - Entrena con 800 registros sintéticos (tasas SEMARNAT/Glastonbury/FIFA)
+  - Inputs:  [asistentes_norm, duracion_norm, tipo_concierto, tipo_deportivo,
+              tipo_festival, tipo_conferencia]
+  - Outputs: [kg_PET, kg_Organico, kg_Aluminio, kg_Vidrio, kg_Carton]
+  - Tiempo entrenamiento: ~3-5 segundos en CPU
+  - Tamaño modelo: ~50KB | Precisión esperada: R² > 0.88
+
+MODELO 2: ClasificadorResiduos (Transfer Learning MobileNetV2 — TF.js)
+  - Base: MobileNetV2 con pesos ImageNet (capas congeladas)
+  - Capas añadidas: GlobalAvgPooling → Dense(128,relu) → Dropout(0.3) → Dense(6,softmax)
+  - Dataset: Kaggle Waste Classification (~2500 imágenes, ~40MB)
+  - Tiempo entrenamiento: 15-25 min en CPU (una sola vez)
+  - Tamaño modelo exportado: ~5MB | Precisión esperada: 87-92%
+  - Categorías: PET, Organico, Aluminio, Vidrio, Carton, NoReciclable
+
+MODELO 3: RecomendadorCircular (Multi-label Classifier — ml-random-forest)
+  - Arquitectura híbrida:
+    1. Clasificador multi-label → decide qué recomendaciones aplican
+    2. Scoring model → rankea por impacto potencial
+    3. Template Engine → llena plantillas con datos específicos del evento
+  - Features: [pet_ratio, organico_ratio, aluminio_ratio, asistentes_norm,
+               tipo_x4, co2_total_norm]
+  - Labels: [reciclaje_intensivo, compostaje, prohibir_plastico, agua_refill,
+             embajadores, contenedores_opt, alianzas, educacion]
+  - Dataset: 400 escenarios sintéticos | Tiempo: <1 seg | Tamaño: ~30KB
+
+-----------------------------------------------------------------------------
+5. PLAN DE IMPLEMENTACIÓN EN 4 FASES
+-----------------------------------------------------------------------------
+
+FASE 1: SETUP E INFRAESTRUCTURA BASE (45 min)
+  - Inicializar backend Express con estructura limpia
+  - Inicializar frontend Vite + React
+  - Configurar SQLite, crear tablas e insertar factores de emisión
+  - Configurar CORS + helmet para seguridad
+  - Crear sistema de CSS variables y tema dark HSL premium
+  - Crear componente GlassCard reutilizable
+
+FASE 2: ENTRENAMIENTO DE MODELOS DE IA (60 min)
+  - train_estimador.js: generar dataset sintético + entrenar Random Forest
+  - train_recomendador.js: generar escenarios + entrenar multi-label clf
+  - train_clasificador.js: descargar Kaggle dataset + fine-tune MobileNetV2
+  - Guardar modelos serializados en ai/models/
+  - Escribir los 3 servicios de inferencia
+
+FASE 3: BACKEND Y FRONTEND COMPLETOS (90 min)
+  - Implementar las 4 rutas Express con todos los endpoints
+  - Dashboard.jsx: métricas animadas + DonutChart
+  - EventoForm.jsx: formulario conectado a /estimar
+  - Clasificador.jsx: drag&drop + webcam + animación escaneo IA
+  - Recomendaciones.jsx: cards con carrusel y barras de impacto
+  - PrivacyModal.jsx + ARCOPanel.jsx (cumplimiento LFPDPPP)
+  - api.js: cliente HTTP conectando todos los componentes
+
+FASE 4: INTEGRACIÓN, PRUEBAS Y VALIDACIÓN (45 min)
+  - Prueba E2E: formulario → estimación → recomendaciones
+  - Prueba clasificador: subir imagen → resultado SEMARNAT
+  - Prueba eliminación ARCO: insertar → eliminar → verificar SQLite
+  - Prueba responsive: 375px (móvil) y 1440px (escritorio)
+  - Verificar tiempos: estimación <100ms, clasificación <500ms
+
+-----------------------------------------------------------------------------
+6. EJECUCIÓN DEL PROYECTO
+-----------------------------------------------------------------------------
+
+Backend:
+  cd backend
+  npm install
+  node ai/training/train_estimador.js      # ~5 segundos
+  node ai/training/train_recomendador.js   # <1 segundo
+  node ai/training/train_clasificador.js   # ~20 minutos (solo una vez)
+  node server.js                           # http://localhost:3001
+
+Frontend:
+  cd frontend
+  npm install
+  npm run dev                              # http://localhost:5173
+
+-----------------------------------------------------------------------------
+7. REQUERIMIENTOS TRANSVERSALES (Privacidad LFPDPPP)
+-----------------------------------------------------------------------------
+1. Modal de Aviso de Privacidad: aparece obligatoriamente en primer acceso.
+   Checkbox NO pre-marcado. Estado persiste en localStorage.
+2. Minimización de datos: imágenes procesadas en memoria en el servidor,
+   NO se persiste ningún archivo de imagen ni metadato identificable.
+3. Derechos ARCO: botón "Eliminar mis datos" ejecuta DELETE FROM eventos.
+   Modal de confirmación con cuenta regresiva de 5 segundos.
+4. Seguridad: helmet.js para headers, CORS restringido al origen del frontend.
+5. Anonimización: endpoint de estadísticas devuelve solo promedios agregados.
+
+-----------------------------------------------------------------------------
+8. PLAN DE VERIFICACIÓN
+-----------------------------------------------------------------------------
+- Estimación: POST /estimar con 50,000 personas/concierto/4h
+  → Debe arrojar ~7-9 toneladas totales y desglose lógico por material
+- Clasificación: POST /clasificar con imagen de botella PET
+  → Debe retornar categoria: "PET", confianza > 0.80
+- Recomendaciones: GET /recomendaciones/1
+  → Debe retornar >= 4 recomendaciones priorizadas
+- ARCO: DELETE /eliminar-datos → {"registros_eliminados": N}
+- Responsive: Dashboard funcional en 375px y 1440px sin overflow

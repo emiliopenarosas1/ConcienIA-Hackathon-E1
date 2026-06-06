@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+.npm/
+
+# Base de datos generada en runtime
+backend/db/datacircular.db
+
+# Modelos entrenados (grandes, se regeneran con npm run train)
+backend/ai/models/estimador.json
+backend/ai/models/recomendador.json
+backend/ai/models/clasificador/mlp_model.json
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Build del frontend
+frontend/dist/
+frontend/.vite/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+*.swp
+
+# Claude Code (interno)
+.claude/
