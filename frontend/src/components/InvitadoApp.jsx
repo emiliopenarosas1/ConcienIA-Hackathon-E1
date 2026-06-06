@@ -4,6 +4,17 @@ import MiProgreso   from '../views/invitado/MiProgreso.jsx';
 import MisCupones   from '../views/invitado/MisCupones.jsx';
 import PrivacyModal, { PRIVACY_ACCEPTED_KEY, PrivacyLink } from './PrivacyModal.jsx';
 
+/**
+ * @file InvitadoApp.jsx
+ * @description Componente principal para el flujo de usuario Invitado/Asistente.
+ * Administra el estado de navegación, las sesiones anónimas y el flujo del aviso de privacidad.
+ */
+
+/**
+ * Genera u obtiene un identificador único de sesión anónima (UUID) almacenado en localStorage.
+ * 
+ * @returns {string} Identificador único de sesión.
+ */
 function getSessionId() {
   let id = localStorage.getItem('ci_session_id');
   if (!id) {
@@ -13,28 +24,46 @@ function getSessionId() {
   return id;
 }
 
+/**
+ * Pestañas o secciones disponibles para la aplicación del asistente.
+ * @type {Array<{id: string, icon: string, label: string}>}
+ */
 const TABS = [
   { id: 'registrar', icon: '♻', label: 'Registrar'   },
   { id: 'progreso',  icon: '▲', label: 'Mi Progreso' },
   { id: 'cupones',   icon: '◈', label: 'Mis Cupones' },
 ];
 
+/**
+ * Componente principal para el flujo de invitados.
+ * 
+ * @param {Object} props - Propiedades del componente.
+ * @param {function} props.onExit - Función callback para salir del modo invitado.
+ * @returns {JSX.Element} Elemento JSX que renderiza la interfaz del asistente.
+ */
 export default function InvitadoApp({ onExit }) {
-  const [tab,       setTab]       = useState('registrar');
-  const [sessionId]               = useState(getSessionId);
-  const [count,     setCount]     = useState(0);
+  const [tab, setTab] = useState('registrar');
+  const [sessionId] = useState(getSessionId);
+  const [count, setCount] = useState(0);
 
-  /* ── Privacy state ── */
   const [showPrivacy, setShowPrivacy] = useState(
     () => !localStorage.getItem(PRIVACY_ACCEPTED_KEY)
   );
   const [reviewPrivacy, setReviewPrivacy] = useState(false);
 
+  /**
+   * Almacena la aceptación del aviso de privacidad y oculta el modal correspondiente.
+   */
   const handleAccept = () => {
     localStorage.setItem(PRIVACY_ACCEPTED_KEY, '1');
     setShowPrivacy(false);
   };
 
+  /**
+   * Maneja el registro de un residuo clasificado y redirige a la pestaña de cupones cada 3 registros.
+   * 
+   * @param {number} nuevoCount - Número acumulado de residuos registrados.
+   */
   const handleRegistro = (nuevoCount) => {
     setCount(nuevoCount);
     if (nuevoCount > 0 && nuevoCount % 3 === 0) {
@@ -44,10 +73,8 @@ export default function InvitadoApp({ onExit }) {
 
   return (
     <div className="movil-layout">
-      {/* First-run privacy gate */}
       {showPrivacy && <PrivacyModal onAccept={handleAccept} />}
 
-      {/* Manual review modal */}
       {reviewPrivacy && (
         <PrivacyModal onAccept={handleAccept} onClose={() => setReviewPrivacy(false)} />
       )}
@@ -78,7 +105,6 @@ export default function InvitadoApp({ onExit }) {
           <MisCupones sessionId={sessionId} count={count} />
         )}
 
-        {/* Re-activate link at the bottom of every view */}
         <PrivacyLink onOpen={() => setReviewPrivacy(true)} />
       </main>
 

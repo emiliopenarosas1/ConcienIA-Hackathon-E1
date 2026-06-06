@@ -4,21 +4,43 @@ import MovilIdentificar from '../views/movil/Identificar.jsx';
 import MovilHistorial   from '../views/movil/MisRegistros.jsx';
 import PrivacyModal, { PRIVACY_ACCEPTED_KEY, PrivacyLink } from './PrivacyModal.jsx';
 
+/**
+ * @file MovilApp.jsx
+ * @description Componente principal para la interfaz móvil del Personal de Intendencia / Operadores.
+ * Permite registrar residuos, clasificarlos usando IA y consultar el historial, gestionando la privacidad obligatoria.
+ */
+
+/**
+ * Pestañas o secciones disponibles para la aplicación de intendencia.
+ * @type {Array<{id: string, icon: string, label: string}>}
+ */
 const TABS = [
   { id: 'registro',    icon: '✎', label: 'Registro'    },
   { id: 'identificar', icon: '⊙', label: 'Identificar' },
   { id: 'historial',   icon: '☰', label: 'Mis registros' },
 ];
 
+/**
+ * Componente principal para el flujo móvil de intendencia.
+ * 
+ * @param {Object} props - Propiedades del componente.
+ * @param {Object} props.user - Objeto que representa los datos del usuario autenticado.
+ * @param {string} props.user.nombre - Nombre completo del usuario.
+ * @param {string} props.user.usuario - Nombre de usuario único.
+ * @param {function} props.onLogout - Función callback para cerrar la sesión actual.
+ * @returns {JSX.Element} Elemento JSX que representa la aplicación móvil de intendencia.
+ */
 export default function MovilApp({ user, onLogout }) {
   const [tab, setTab] = useState('registro');
 
-  /* ── Privacy state ── */
   const [showPrivacy, setShowPrivacy] = useState(
     () => !localStorage.getItem(PRIVACY_ACCEPTED_KEY)
   );
   const [reviewPrivacy, setReviewPrivacy] = useState(false);
 
+  /**
+   * Almacena la aceptación del aviso de privacidad y oculta el modal correspondiente.
+   */
   const handleAccept = () => {
     localStorage.setItem(PRIVACY_ACCEPTED_KEY, '1');
     setShowPrivacy(false);
@@ -28,10 +50,8 @@ export default function MovilApp({ user, onLogout }) {
 
   return (
     <div className="movil-layout">
-      {/* First-run privacy gate */}
       {showPrivacy && <PrivacyModal onAccept={handleAccept} />}
 
-      {/* Manual review modal */}
       {reviewPrivacy && (
         <PrivacyModal onAccept={handleAccept} onClose={() => setReviewPrivacy(false)} />
       )}
@@ -54,7 +74,6 @@ export default function MovilApp({ user, onLogout }) {
         {tab === 'identificar' && <MovilIdentificar />}
         {tab === 'historial'   && <MovilHistorial user={user} />}
 
-        {/* Re-activate link at the bottom of every view */}
         <PrivacyLink onOpen={() => setReviewPrivacy(true)} />
       </main>
 

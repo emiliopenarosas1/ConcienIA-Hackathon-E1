@@ -1,18 +1,28 @@
 import { useState } from 'react';
 
-/* ─── key used in localStorage to track acceptance ─── */
+/**
+ * @file PrivacyModal.jsx
+ * @description Componente de modal de privacidad que gestiona la aceptación del aviso de privacidad integral.
+ * Cumple con los lineamientos de la LFPDPPP.
+ */
+
+/**
+ * Clave utilizada en localStorage para rastrear la aceptación del aviso de privacidad.
+ * @type {string}
+ */
 export const PRIVACY_ACCEPTED_KEY = 'amb_privacy_accepted_v1';
 
-/* ─────────────────────────────────────────────────────
-   PrivacyModal
-   Props:
-     onAccept  – callback when user clicks "Continuar"
-     onClose   – optional callback to close without accepting
-                 (only used when opened manually, not first-run)
-   ───────────────────────────────────────────────────── */
+/**
+ * Componente que renderiza el modal del aviso de privacidad integral.
+ * 
+ * @param {Object} props - Propiedades del componente.
+ * @param {function} props.onAccept - Función callback ejecutada al aceptar los términos.
+ * @param {function} [props.onClose] - Función callback opcional para cerrar el modal en modo consulta/revisión.
+ * @returns {JSX.Element} Elemento JSX que representa el modal de privacidad.
+ */
 export default function PrivacyModal({ onAccept, onClose }) {
   const [checked, setChecked] = useState(false);
-  const isReview = typeof onClose === 'function'; // opened manually to review
+  const isReview = typeof onClose === 'function';
 
   return (
     <div className="modal-overlay" style={{ zIndex: 9999 }}>
@@ -20,7 +30,6 @@ export default function PrivacyModal({ onAccept, onClose }) {
         className="modal-box glass-elevated"
         style={{ maxWidth: 480, width: '94vw', padding: '1.75rem 1.5rem', display: 'flex', flexDirection: 'column', maxHeight: '92vh' }}
       >
-        {/* ── Header ── */}
         <div style={{ textAlign: 'center', marginBottom: '1.25rem', flexShrink: 0 }}>
           <span style={{ fontSize: '2.2rem' }}>♻</span>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: '0.4rem', color: 'var(--accent-glow)' }}>
@@ -31,7 +40,6 @@ export default function PrivacyModal({ onAccept, onClose }) {
           </p>
         </div>
 
-        {/* ── Scrollable body ── */}
         <div
           style={{
             overflowY: 'auto',
@@ -110,7 +118,6 @@ export default function PrivacyModal({ onAccept, onClose }) {
           </Section>
         </div>
 
-        {/* ── Checkbox (only shown on first-run, not on review) ── */}
         {!isReview && (
           <label
             style={{
@@ -136,7 +143,6 @@ export default function PrivacyModal({ onAccept, onClose }) {
           </label>
         )}
 
-        {/* ── Actions ── */}
         {isReview ? (
           <button
             id="privacy-close-btn"
@@ -162,7 +168,16 @@ export default function PrivacyModal({ onAccept, onClose }) {
   );
 }
 
-/* ── Shared section card ── */
+/**
+ * Componente interno que renderiza una sección informativa dentro del aviso de privacidad.
+ * 
+ * @private
+ * @param {Object} props - Propiedades del componente.
+ * @param {string} props.icon - Icono representativo de la sección.
+ * @param {string} props.title - Título de la sección.
+ * @param {React.ReactNode} props.children - Contenido de la sección.
+ * @returns {JSX.Element} Elemento JSX de la sección.
+ */
 function Section({ icon, title, children }) {
   return (
     <div className="glass-flat" style={{ padding: '0.8rem 1rem', display: 'flex', gap: '0.75rem', borderRadius: 10 }}>
@@ -179,10 +194,13 @@ function Section({ icon, title, children }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────
-   PrivacyLink  – small footer link to re-open the modal
-   Usage: <PrivacyLink />  (renders a <p> with a link)
-   ───────────────────────────────────────────────────── */
+/**
+ * Enlace discreto para que el usuario pueda reabrir el aviso de privacidad en cualquier momento.
+ * 
+ * @param {Object} props - Propiedades del componente.
+ * @param {function} props.onOpen - Función callback para abrir el modal del aviso de privacidad.
+ * @returns {JSX.Element} Elemento JSX que contiene el enlace para volver a activar el aviso.
+ */
 export function PrivacyLink({ onOpen }) {
   return (
     <p
