@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const clasificador = require('../ai/inference/ClasificadorService');
+const clasificador = require('../ai/inference/IdentificarService');
 
 // POST /api/clasificar  { imagen_base64: "data:image/jpeg;base64,..." }
 // Imágenes procesadas en memoria — NO se persiste ningún dato de imagen (LFPDPPP)
